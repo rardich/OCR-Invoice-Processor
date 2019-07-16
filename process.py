@@ -1,13 +1,59 @@
 from PIL import Image
 from pdf2image import convert_from_path
-import pytesseract, re, os, glob, time, PyPDF2, csv, re
+from PyPDF2 import PdfFileReader
+from positions import allPositions
+import pytesseract, re, os, glob, time, csv, re
 
 def crop(image, coordinates, savedName):
     croppedImage = image.crop(coordinates)
     croppedImage.save(savedName)
 
-# Stored in (PO, Supplier, Date, Description, Invoice #, Amount) format
-def process(docString, image, allPositions):
+# Separate method necessary because amount listed on final page
+def processMidland(docString, image, allPositions, filename, vendor):
+    # Process everything except amount on the first page
+    data = []
+    # Get relevant position data from allPositions dictionary
+    positions = allPositions[vendor]
+    # PO
+    crop(image, (positions[0][0], positions[0][1], positions[0][2], positions[0][3]), 'PO.png')
+    PO = re.sub('[^\d]', '', pytesseract.image_to_string(Image.open('PO.png'), config='--psm 7'))
+    if len(PO) == 5 and PO.isdigit():
+        data.insert(0, PO)
+    else:
+        data.insert(0, '')
+    # Supplier
+    data.insert(1, vendor)
+    # Date
+    crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
+    date = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
+    data.insert(2, date)
+    # Description
+    crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'desc.png')
+    description = pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7')
+    if(description != PO):
+        data.insert(3, description)
+    else:
+        data.insert(3, '')
+    # Invoice #
+    crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'inv.png')
+    invoice = pytesseract.image_to_string(Image.open('inv.png'), config='--psm 7')
+    data.insert(4, invoice)
+    # Make new image for last page with amount on it
+    pages = convert_from_path(filename)
+    for page in pages:
+        page.save('temp.png', 'PNG')
+    image = Image.open('temp.png')
+    # Amount
+    crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
+    amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
+    data.insert(5, amount)
+    # Returned list
+    print(data)
+    return data
+
+
+def process(docString, image, allPositions, filename):
+    print(filename)
     # Filter looking for Vendor Identification Keywords
     if 'VERITIV OPERATING COMPANY' in docString:
         splitted = docString.split()
@@ -21,6 +67,17 @@ def process(docString, image, allPositions):
             vendor = 'IND01130'
         else:
             vendor = 'IND001'
+    elif 'Midland Paper Company' in docString:
+        splitted = docString.split()
+        if 'BIG' in splitted and 'SHANTY' in splitted:
+            vendor = 'MID01130'
+        else:
+            vendor = 'MDL001'
+        # Find number of pages since Midland has total amount on last page
+        pdf = PdfFileReader(filename, 'rb')
+        numPages = pdf.getNumPages() 
+        if numPages > 1:
+            return processMidland(docString, image, allPositions, filename, vendor)
     else:
         print('Invoice not Recognized')
         return
@@ -29,7 +86,7 @@ def process(docString, image, allPositions):
     positions = allPositions[vendor]
     # PO
     crop(image, (positions[0][0], positions[0][1], positions[0][2], positions[0][3]), 'PO.png')
-    PO = pytesseract.image_to_string(Image.open('PO.png'), config='--psm 7')
+    PO = re.sub('[^\d]', '', pytesseract.image_to_string(Image.open('PO.png'), config='--psm 7'))
     if len(PO) == 5 and PO.isdigit():
         data.insert(0, PO)
     else:
@@ -38,24 +95,25 @@ def process(docString, image, allPositions):
     data.insert(1, vendor)
     # Date
     crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
-    date = pytesseract.image_to_string(Image.open('date.png'), config='--psm 7')
+    date = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
     data.insert(2, date)
     # Description
-    crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'date.png')
-    description = pytesseract.image_to_string(Image.open('date.png'), config='--psm 7')
+    crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'desc.png')
+    description = pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7')
     if(description != PO):
         data.insert(3, description)
     else:
         data.insert(3, '')
     # Invoice #
-    crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'date.png')
-    invoice = pytesseract.image_to_string(Image.open('date.png'), config='--psm 7')
+    crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'inv.png')
+    invoice = pytesseract.image_to_string(Image.open('inv.png'), config='--psm 7')
     data.insert(4, invoice)
     # Amount
     crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
     amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
     data.insert(5, amount)
     # Returned list
+    print(data)
     return data
 
 # Still need to add in functionality to edit the desired folder path
@@ -64,15 +122,8 @@ folder_path = 'C:/Users/Richard/Projects/OCR Invoice Processor/Invoices'
 startTime = time.time()
 # Storage for eventual CSV conversion
 export = [['PO', 'Supplier', 'Date', 'Description', 'Invoice #', 'Amount']]
-# Dictionary with all positional data (eventually implement import for this)
-allPositions = {
-    'XPX001':   [[467,846,746,902],[1186,265,1402,301],[467,846,746,902],[70,850,305,902],[1184,349,1403,386]],
-    'XPE01130': [[467,846,746,902],[1186,265,1402,301],[467,846,746,902],[70,850,305,902],[1184,349,1403,386]],
-    'IND001':   [[1178,323,1600,367],[1176,264,1355,300],[1177,391,1500,420],[1409,218,1518,247],[1176,1017,1375,1045]],
-    'IND01130': [[1178,323,1600,367],[1176,264,1355,300],[1177,391,1500,420],[1409,218,1518,247],[1176,1017,1375,1045]],
-    'ULN001':   [[200,712,315,740],[1406,205,1635,236],[],[],[]],
-    'ULN01130': []
-}
+count = 0
+
 # Iterate through all files in folder_path
 for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
     # Iteration start time
@@ -82,20 +133,37 @@ for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
     for page in pages:
         page.save('temp.png', 'PNG')
     image = Image.open('temp.png')
-    width, height = image.size
-    crop(image, (0, 0, width, height / 2), 'cropped.png')
-    # Read top half
-    docString = pytesseract.image_to_string(Image.open('cropped.png'))
-    # Check if Invoice
+    # Extracting the text to check for vendor and if invoice
+    # Try and except used because of exception: ValueError: 
+    # invalid literal for int() with base 10: 'obj' not allowing 
+    # certain PDF file names to be used
+    try:
+        pdf = PdfFileReader(filename, 'rb')
+        page = pdf.getPage(0)
+        docString = page.extractText()
+    except:
+        image = Image.open('temp.png')
+        width, height = image.size
+        crop(image, (0, 0, width, height / 2), 'cropped.png')
+        # Read top half
+        docString = pytesseract.image_to_string(Image.open('cropped.png'))
+        pdf = open(filename, 'rb')
+    # Check if invoice
     if 'Invoice' in docString or 'INVOICE' in docString or 'invoice' in docString:
-        export.append(process(docString, image, allPositions))
+        data = process(docString, image, allPositions, filename)
+        if data is not None:
+            export.append(data)
     else:
         print('not an invoice')
+    count += 1
     print('Completed in ' + str(time.time() - iterationStart) + ' seconds')
-csvfile = 'C:/Users/Richard/Projects/OCR Invoice Processor/output.csv'
 # Only export as CSV if not empty
-if len(export) > 6:
-    with open(csvfile, "w", newline='') as output:
+csvfile = 'C:/Users/Richard/Projects/OCR Invoice Processor/output.csv'
+# If nothing besides the labels, len() will read the length of the list as 6, if there is content
+# the length will be of the number of lists inside the list instead
+if len(export) > 0 and len(export) != 6:
+    with open(csvfile, "w+", newline='') as output:
         writer = csv.writer(output)
         writer.writerows(export)
-print('Total completed in ' + str(time.time() - startTime) + ' seconds')
+print(str(count) + ' invoices completed in ' + str(time.time() - startTime) + ' seconds')
+print('Averaged ' + str((time.time() - startTime)/count) + ' seconds')
