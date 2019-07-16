@@ -69,7 +69,9 @@ allPositions = {
     'XPX001':   [[467,846,746,902],[1186,265,1402,301],[467,846,746,902],[70,850,305,902],[1184,349,1403,386]],
     'XPE01130': [[467,846,746,902],[1186,265,1402,301],[467,846,746,902],[70,850,305,902],[1184,349,1403,386]],
     'IND001':   [[1178,323,1600,367],[1176,264,1355,300],[1177,391,1500,420],[1409,218,1518,247],[1176,1017,1375,1045]],
-    'IND01130': [[1178,323,1600,367],[1176,264,1355,300],[1177,391,1500,420],[1409,218,1518,247],[1176,1017,1375,1045]]
+    'IND01130': [[1178,323,1600,367],[1176,264,1355,300],[1177,391,1500,420],[1409,218,1518,247],[1176,1017,1375,1045]],
+    'ULN001':   [[200,712,315,740],[1406,205,1635,236],[],[],[]],
+    'ULN01130': []
 }
 # Iterate through all files in folder_path
 for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
@@ -91,7 +93,9 @@ for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
         print('not an invoice')
     print('Completed in ' + str(time.time() - iterationStart) + ' seconds')
 csvfile = 'C:/Users/Richard/Projects/OCR Invoice Processor/output.csv'
-with open(csvfile, "w", newline='') as output:
-    writer = csv.writer(output)
-    writer.writerows(export)
+# Only export as CSV if not empty
+if len(export) > 6:
+    with open(csvfile, "w", newline='') as output:
+        writer = csv.writer(output)
+        writer.writerows(export)
 print('Total completed in ' + str(time.time() - startTime) + ' seconds')
