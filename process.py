@@ -9,7 +9,7 @@ def crop(image, coordinates, savedName):
     croppedImage.save(savedName)
 
 # Separate method necessary because amount listed on final page
-def processMidland(docString, image, allPositions, filename, vendor):
+def processLast(docString, image, allPositions, filename, vendor):
     # Process everything except amount on the first page
     data = []
     # Get relevant position data from allPositions dictionary
@@ -54,32 +54,52 @@ def processMidland(docString, image, allPositions, filename, vendor):
 
 def process(docString, image, allPositions, filename):
     print(filename)
+    splitted = docString.split()
     # Filter looking for Vendor Identification Keywords
-    if 'VERITIV OPERATING COMPANY' in docString:
-        splitted = docString.split()
-        if 'BIG' in splitted and 'SHANTY' in splitted:
-            vendor = 'XPE01130'
-        else:
-            vendor = 'XPX001'
-    elif 'INDIGO AMERICA INC' in docString:
-        splitted = docString.split()
+    
+    if 'INDIGO AMERICA INC' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
             vendor = 'IND01130'
         else:
             vendor = 'IND001'
-    elif 'Midland Paper Company' in docString:
+    elif 'IA' in splitted and 'THOMPSON' in splitted:
+        # LBS amount has dynamic location, so will look for it in text instead
+        docString = pytesseract.image_to_string(image)
         splitted = docString.split()
+        if 'BIG' in splitted and 'SHANTY' in splitted:
+            vendor = 'LBS01130'
+        else:
+            vendor = 'LBS010'
+    elif 'Midland Paper Company' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
             vendor = 'MID01130'
         else:
             vendor = 'MDL001'
-        # Find number of pages since Midland has total amount on last page
         pdf = PdfFileReader(filename, 'rb')
         numPages = pdf.getNumPages() 
         if numPages > 1:
-            return processMidland(docString, image, allPositions, filename, vendor)
+            return processLast(docString, image, allPositions, filename, vendor)
+    elif 'Norcross' in docString and 'Corporate' in docString:
+        docString = pytesseract.image_to_string(image)
+        splitted = docString.split()
+        vendor = 'SPO001'
+    elif 'ULINE' in docString:
+        if 'BIG' in splitted and 'SHANTY' in splitted:
+            vendor = 'ULN01130'
+        else:
+            vendor = 'ULN001'
+        pdf = PdfFileReader(filename, 'rb')
+        numPages = pdf.getNumPages() 
+        if numPages > 1:
+            return processLast(docString, image, allPositions, filename, vendor)
+    elif 'VERITIV OPERATING COMPANY' in docString:
+        if 'BIG' in splitted and 'SHANTY' in splitted:
+            vendor = 'XPE01130'
+        else:
+            vendor = 'XPX001'
     else:
         print('Invoice not Recognized')
+        print(splitted)
         return
     data = []
     # Get relevant position data from allPositions dictionary
@@ -100,7 +120,7 @@ def process(docString, image, allPositions, filename):
     # Description
     crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'desc.png')
     description = pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7')
-    if(description != PO):
+    if PO == '':
         data.insert(3, description)
     else:
         data.insert(3, '')
@@ -112,6 +132,21 @@ def process(docString, image, allPositions, filename):
     crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
     amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
     data.insert(5, amount)
+    
+    # Exception handling
+    # Invoice # Exceptions
+    if vendor == 'SPO001':
+        tempInv = list(data[4])
+        tempInv[0] = 'I'
+        data.insert(4, ''.join(tempInv))
+    # Amount Exceptions
+    if vendor == 'LBS01130' or vendor == 'LBS010':
+        amount = re.sub('[^\d.]', '', splitted[-4])
+    elif vendor == 'SPO001':
+        amount = re.sub('[^\d.]', '', splitted[-1])
+    data.insert(5, amount)
+    
+    
     # Returned list
     print(data)
     return data
