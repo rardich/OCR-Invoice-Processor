@@ -56,7 +56,6 @@ def process(docString, image, allPositions, filename):
     print(filename)
     splitted = docString.split()
     # Filter looking for Vendor Identification Keywords
-    
     if 'INDIGO AMERICA INC' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
             vendor = 'IND01130'
@@ -138,13 +137,14 @@ def process(docString, image, allPositions, filename):
     if vendor == 'SPO001':
         tempInv = list(data[4])
         tempInv[0] = 'I'
-        data.insert(4, ''.join(tempInv))
+        data[4]= ''.join(tempInv)
     # Amount Exceptions
     if vendor == 'LBS01130' or vendor == 'LBS010':
         amount = re.sub('[^\d.]', '', splitted[-4])
+        data[5] = amount
     elif vendor == 'SPO001':
         amount = re.sub('[^\d.]', '', splitted[-1])
-    data.insert(5, amount)
+        data[5] = amount
     
     
     # Returned list
