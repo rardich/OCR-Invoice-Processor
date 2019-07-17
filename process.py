@@ -20,6 +20,7 @@ def processLast(docString, image, allPositions, filename, vendor):
     if len(PO) == 5 and PO.isdigit():
         data.insert(0, PO)
     else:
+        PO = ''
         data.insert(0, '')
     # Supplier
     data.insert(1, vendor)
@@ -30,7 +31,7 @@ def processLast(docString, image, allPositions, filename, vendor):
     # Description
     crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'desc.png')
     description = pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7')
-    if(description != PO):
+    if PO == '':
         data.insert(3, description)
     else:
         data.insert(3, '')
@@ -47,7 +48,7 @@ def processLast(docString, image, allPositions, filename, vendor):
     crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
     amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
     data.insert(5, amount)
-    # Returned list
+    # Return list
     print(data)
     return data
 
@@ -109,6 +110,7 @@ def process(docString, image, allPositions, filename):
     if len(PO) == 5 and PO.isdigit():
         data.insert(0, PO)
     else:
+        PO = ''
         data.insert(0, '')
     # Supplier
     data.insert(1, vendor)
@@ -131,8 +133,6 @@ def process(docString, image, allPositions, filename):
     crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
     amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
     data.insert(5, amount)
-    
-    # Exception handling
     # Invoice # Exceptions
     if vendor == 'SPO001':
         tempInv = list(data[4])
@@ -145,9 +145,7 @@ def process(docString, image, allPositions, filename):
     elif vendor == 'SPO001':
         amount = re.sub('[^\d.]', '', splitted[-1])
         data[5] = amount
-    
-    
-    # Returned list
+    # Return list
     print(data)
     return data
 
