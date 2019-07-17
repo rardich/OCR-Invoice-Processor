@@ -2,7 +2,7 @@ from PIL import Image
 from pdf2image import convert_from_path
 from PyPDF2 import PdfFileReader
 from positions import allPositions
-import pytesseract, re, os, glob, time, csv, re
+import pytesseract, re, os, glob, time, csv, re, itertools
 
 def crop(image, coordinates, savedName):
     croppedImage = image.crop(coordinates)
@@ -49,7 +49,7 @@ def processLast(docString, image, allPositions, filename, vendor):
     amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
     data.insert(5, amount)
     # Return list
-    print(data)
+    # print(data)
     return data
 
 
@@ -146,7 +146,7 @@ def process(docString, image, allPositions, filename):
         amount = re.sub('[^\d.]', '', splitted[-1])
         data[5] = amount
     # Return list
-    print(data)
+    # print(data)
     return data
 
 # Still need to add in functionality to edit the desired folder path
@@ -194,9 +194,11 @@ for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
 csvfile = 'C:/Users/Richard/Projects/OCR Invoice Processor/output.csv'
 # If nothing besides the labels, len() will read the length of the list as 6, if there is content
 # the length will be of the number of lists inside the list instead
-if len(export) > 0 and len(export) != 6:
+if len(export) > 0 and len(list(itertools.chain.from_iterable(export))) != 6:
     with open(csvfile, "w+", newline='') as output:
         writer = csv.writer(output)
         writer.writerows(export)
-print(str(count) + ' invoices completed in ' + str(time.time() - startTime) + ' seconds')
-print('Averaged ' + str((time.time() - startTime)/count) + ' seconds')
+print(export)
+print(str(count) + ' invoices completed in ' + str(time.time() - startTime)  + ' seconds')
+if count != 0:
+    print('Averaged ' + str((time.time() - startTime)/count) + ' seconds')
