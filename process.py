@@ -38,6 +38,8 @@ def processLast(docString, image, allPositions, filename, vendor):
     # Invoice #
     crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'inv.png')
     invoice = pytesseract.image_to_string(Image.open('inv.png'), config='--psm 7')
+    if vendor != 'XPX001' or vendor != 'XPE01130':
+        invoice = invoice.lstrip('0').strip('.')
     data.insert(4, invoice)
     # Make new image for last page with amount on it
     pages = convert_from_path(filename)
@@ -48,20 +50,41 @@ def processLast(docString, image, allPositions, filename, vendor):
     crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
     amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
     data.insert(5, amount)
+
+    # Amount Exceptions
+    if vendor == 'SIT001' or vendor == 'STR01130':
+        docString = pytesseract.image_to_string(image)
+        splitted = docString.split()
+        amount = re.sub('[^\d.]', '', splitted[-1])
+        data[5] = amount
+
     # Return list
-    # print(data)
+    print(data)
     return data
 
-
 def process(docString, image, allPositions, filename):
-    print(filename)
     splitted = docString.split()
-    # Filter looking for Vendor Identification Keywords
+    # Apple Courier
+    # BNBindery
+    # Cedar Grove
+    # Clearbags
+    # Crown Lift Trucks
+    # Crystal Springs
+    # Dwyer R+D
+    # Evergreen Vending
+    # First Choice
+    # Fujifilm
+    # GP2
+    # GPA
+    # Grimco
+    # HP Indigo
     if 'INDIGO AMERICA INC' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
             vendor = 'IND01130'
         else:
             vendor = 'IND001'
+    # Labels Direct
+    # LBS
     elif 'IA' in splitted and 'THOMPSON' in splitted:
         # LBS amount has dynamic location, so will look for it in text instead
         docString = pytesseract.image_to_string(image)
@@ -70,6 +93,14 @@ def process(docString, image, allPositions, filename):
             vendor = 'LBS01130'
         else:
             vendor = 'LBS010'
+    # Livingston
+    elif 'ITASCA' in docString and 'Pierce' in docString:
+        vendor = 'LII001'
+    # Mac Paper
+    # MaxVision
+    # Mckinney
+    # Metro Trailer
+    # Midland
     elif 'Midland Paper Company' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
             vendor = 'MID01130'
@@ -79,10 +110,34 @@ def process(docString, image, allPositions, filename):
         numPages = pdf.getNumPages() 
         if numPages > 1:
             return processLast(docString, image, allPositions, filename, vendor)
+    # National Print
+    # Nobelus
+    # Oracle
+    # Paper Handling
+    # Perimeter Office
+    # Purolator
+    # S-One
+    # Scott Lithographing
+    # SHI International
+    # Sound Maintenance
+    # Spoke
     elif 'Norcross' in docString and 'Corporate' in docString:
         docString = pytesseract.image_to_string(image)
         splitted = docString.split()
         vendor = 'SPO001'
+    # Structured
+    elif 'CLACKAMAS' in docString and '400' in docString:
+        if 'BIG' in splitted and 'SHANTY' in splitted:
+            vendor = 'STR01130'
+        else:
+            vendor = 'SIT001'
+        pdf = PdfFileReader(filename, 'rb')
+        numPages = pdf.getNumPages() 
+        if numPages > 1:
+            return processLast(docString, image, allPositions, filename, vendor)
+    # TEC Lighting
+    # Tradebe
+    # Uline
     elif 'ULINE' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
             vendor = 'ULN01130'
@@ -92,11 +147,18 @@ def process(docString, image, allPositions, filename):
         numPages = pdf.getNumPages() 
         if numPages > 1:
             return processLast(docString, image, allPositions, filename, vendor)
+    # Universal Engraving
+    # USADATA
+    # Veritiv
     elif 'VERITIV OPERATING COMPANY' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
             vendor = 'XPE01130'
         else:
             vendor = 'XPX001'
+    # Washington Alarm
+    # Waste Not Paper
+    # Zee Medical
+    # Other
     else:
         print('Invoice not Recognized')
         print(splitted)
@@ -128,6 +190,8 @@ def process(docString, image, allPositions, filename):
     # Invoice #
     crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'inv.png')
     invoice = pytesseract.image_to_string(Image.open('inv.png'), config='--psm 7')
+    if vendor != 'XPX001' or vendor != 'XPE01130':
+        invoice = invoice.lstrip('0').strip('.')
     data.insert(4, invoice)
     # Amount
     crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
@@ -146,7 +210,7 @@ def process(docString, image, allPositions, filename):
         amount = re.sub('[^\d.]', '', splitted[-1])
         data[5] = amount
     # Return list
-    # print(data)
+    print(data)
     return data
 
 # Still need to add in functionality to edit the desired folder path
@@ -161,6 +225,7 @@ count = 0
 for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
     # Iteration start time
     iterationStart = time.time()
+    print(filename)
     # Converting into image
     pages = convert_from_path(filename, single_file = True)
     for page in pages:
@@ -180,7 +245,12 @@ for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
         crop(image, (0, 0, width, height / 2), 'cropped.png')
         # Read top half
         docString = pytesseract.image_to_string(Image.open('cropped.png'))
-        pdf = open(filename, 'rb')
+    if docString == '':
+        image = Image.open('temp.png')
+        width, height = image.size
+        crop(image, (0, 0, width, height / 2), 'cropped.png')
+        # Read top half
+        docString = pytesseract.image_to_string(Image.open('cropped.png'))
     # Check if invoice
     if 'Invoice' in docString or 'INVOICE' in docString or 'invoice' in docString:
         data = process(docString, image, allPositions, filename)
@@ -198,7 +268,6 @@ if len(export) > 0 and len(list(itertools.chain.from_iterable(export))) != 6:
     with open(csvfile, "w+", newline='') as output:
         writer = csv.writer(output)
         writer.writerows(export)
-print(export)
 print(str(count) + ' invoices completed in ' + str(time.time() - startTime)  + ' seconds')
 if count != 0:
     print('Averaged ' + str((time.time() - startTime)/count) + ' seconds')
