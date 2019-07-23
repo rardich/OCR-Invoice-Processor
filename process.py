@@ -119,7 +119,7 @@ def process(docString, image, allPositions, filename):
         print(data)
         return data 
     # Crown Lift Trucks
-    elif '!' in docString and '@' in docString and '&' in docString:
+    elif '!' in docString and '@' in docString and '&' in docString and 'RPI' not in docString:
         docString = pytesseract.image_to_string(image)
         splitted = docString.split()
         PO = ''
@@ -148,6 +148,8 @@ def process(docString, image, allPositions, filename):
         print(data)
         return data    
     # Crystal Springs
+    elif 'www.Crystal-Springs.com' in docString:
+        vendor = 'CRY001'
     # Dwyer R+D
     elif 'Dwyer' in docString:
         vendor = 'DRD001'
@@ -156,7 +158,11 @@ def process(docString, image, allPositions, filename):
     elif 'DATEINVOICE' in docString and 'NUMBERTERMSRoute' in docString:
         vendor = 'EVE001'
     # First Choice
+    elif 'First Choice' in docString:
+        vendor = 'FIR02130'
     # Fujifilm
+    elif 'FUJIFILM' in docString:
+        vendor = 'FUJ001'
     # GP2
     elif 'www.gp2tech.com' in docString:
         if 'Big' in splitted and 'Shanty' in splitted:
@@ -179,6 +185,11 @@ def process(docString, image, allPositions, filename):
         else:
             vendor = 'IND001'
     # Labels Direct
+    elif 'Center Boulevard' in docString and 'Chesterfield' in docString:
+        if 'Big' in splitted and 'Shanty' in splitted:
+            vendor = 'LAB01130'
+        else:
+            vendor = 'LBL001' 
     # LBS
     elif 'IA' in splitted and 'THOMPSON' in splitted:
         # LBS amount has dynamic location, so will look for it in text instead
@@ -192,11 +203,20 @@ def process(docString, image, allPositions, filename):
     elif 'ITASCA' in docString and 'Pierce' in docString:
         vendor = 'LII001'
     # Mac Paper
+    elif 'MAC PAPERS' in docString:
+        if 'BIG' in splitted and 'SHANTY' in splitted:
+            vendor = 'MAC01130'
+        else:
+            vendor = 'MCP001'
     # MaxVision
     elif 'Kennestone' in docString and 'Circle' in docString:
         vendor = 'MAX01130'
     # Mckinney
+    elif 'Saturn' in docString and 'Brea' in docString:
+        vendor = 'MCK001' 
     # Metro Trailer
+    elif 'Metro Trailer' in docString:
+        vendor = 'MTL01130'
     # Midland
     elif 'Midland Paper Company' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
@@ -211,6 +231,11 @@ def process(docString, image, allPositions, filename):
     elif 'National Print Wholesale' in docString:
         vendor = 'NPW130'
     # Nobelus
+    elif 'sales@nobelus.com' in docString:
+        if 'Big' in splitted and 'Shanty' in splitted:
+            vendor = 'AME01130'
+        else:
+            vendor = 'ASG001'
     # Oracle
     elif 'Oracle America' in docString:
         vendor = 'ORA001'
@@ -262,7 +287,14 @@ def process(docString, image, allPositions, filename):
     elif 'www.purolatorinternational.com' in docString:
         vendor = 'PRL001'
     # S-One
+    elif 'S-One' in docString:
+        if 'Big' in splitted and 'Shanty' in splitted:
+            vendor = 'SON130'
+        else:
+            vendor = 'SON001'
     # Scott Lithographing
+    elif 'Scott Lithographing' in docString:
+        vendor = 'SLC01130'
     # SHI International
     elif 'SHI International Corp' in docString:
         vendor = 'SHI001'
@@ -271,6 +303,8 @@ def process(docString, image, allPositions, filename):
         if numPages > 1:
             return processLast(docString, image, allPositions, filename, vendor)
     # Sound Maintenance
+    elif 'Sound Maintenance' in docString:
+        vendor = 'SOU001'
     # Spoke
     elif 'Norcross' in docString and 'Corporate' in docString:
         docString = pytesseract.image_to_string(image)
@@ -287,6 +321,8 @@ def process(docString, image, allPositions, filename):
         if numPages > 1:
             return processLast(docString, image, allPositions, filename, vendor)
     # TEC Lighting
+    elif 'Arovista Circle' in docString:
+        vendor = 'TLI001'
     # Tradebe
     elif 'Tradebe' in docString:
         docString = pytesseract.image_to_string(image)
@@ -310,6 +346,8 @@ def process(docString, image, allPositions, filename):
         if numPages > 1:
             return processLast(docString, image, allPositions, filename, vendor)
     # USADATA
+    elif 'Third Avenue' in docString:
+        vendor = 'USA02130'
     # Veritiv
     elif 'VERITIV OPERATING COMPANY' in docString:
         if 'BIG' in splitted and 'SHANTY' in splitted:
@@ -382,6 +420,23 @@ def process(docString, image, allPositions, filename):
         date = pytesseract.image_to_string(Image.open('date.png'), config='--psm 7')
         date = re.sub('[^\d/]','', str(months[date[3:6]]) + '/' + str(date[0:2]) + '/' + str(date[-4:]))
         data[2] = date
+    elif vendor == 'ASG001' or vendor == 'AME01130':
+        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
+        date = pytesseract.image_to_string(Image.open('date.png'), config='--psm 7')
+        date = re.sub('[^\d/]','', str(months[date[0:-9]]) + '/' + str(date[-9:-6]) + '/' + str(date[-4:]))
+        data[2] = date
+    elif vendor == 'MAC01130':
+        crop(image, (1391,287,1442,347), 'date.png')
+        tempMonth = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
+        crop(image, (1448,286,1500,347), 'date.png')
+        tempDay = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
+        crop(image, (1505,287,1558,347), 'date.png')
+        tempYear = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
+        date = tempMonth + '/' + tempDay + '/' + tempYear
+        data[2] = date
+    elif vendor == 'CRY001':
+        date = date[0:2] + '/' + date[2:4] + '/' + date[4:]
+        data[2] = date
     # Description Exceptions
     if vendor == 'APP01130' or vendor == 'CGO001':
         description = 'Svc ' + description
@@ -393,11 +448,36 @@ def process(docString, image, allPositions, filename):
         if description != 'Avanti Subsidy':
             description = 'Coffee'
         data[3] = description
+    elif vendor == 'SOU001':
+        tempSplitted = description.split()
+        if len(tempSplitted) >= 4:
+            description = tempSplitted[0] + ' ' + tempSplitted[1] + ' ' + tempSplitted[-2] + ' ' + tempSplitted[-1]
+        data[3] = description
+    elif vendor == 'MTL01130':
+        crop(image, (940,903,1067,938), 'desc.png')
+        tempDescStart = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7'))
+        crop(image, (940,939,1067,974), 'desc.png')
+        tempDescEnd = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7'))
+        description = description + ' ' + tempDescStart + '-' + tempDescEnd
+        data[3] = description
+    elif vendor == 'FUJ001':
+        crop(image, (267,851,1462,910), 'desc.png')
+        tempDesc = pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7')
+        tempDesc = tempDesc[18:-26].strip() + ' ' + description[4:].strip()
+        data[3] = tempDesc
     # Invoice # Exceptions
     if vendor == 'SPO001':
         tempInv = list(data[4])
         tempInv[0] = 'I'
         data[4]= ''.join(tempInv)
+    elif vendor == 'ASG001' or vendor == 'AME01130':
+        tempInv = list(data[4])
+        tempInv[3] = '0'
+        data[4]= ''.join(tempInv)
+    elif vendor == 'FUJ001':
+        tempInv = invoice[:8]
+        invoice = tempInv + description[4:8].strip().upper()
+        data[4] = invoice
     # Amount Exceptions
     if vendor == 'LBS01130' or vendor == 'LBS010':
         amount = re.sub('[^\d.]', '', splitted[-4])
@@ -417,6 +497,16 @@ def process(docString, image, allPositions, filename):
         data[5] = amount
     elif vendor == 'DRD001':
         amount = re.sub('[^\d.]', '', splitted[-1])
+        data[5] = amount
+    elif (vendor == 'ASG001' or vendor == 'AME01130') and amount == '':
+        docString = pytesseract.image_to_string(image)
+        splitted = docString.split()
+        amount = re.sub('[^\d.]', '', splitted[splitted.index('Total') + 1])
+        data[5] = amount
+    elif vendor == 'MCK001':
+        docString = pytesseract.image_to_string(image)
+        splitted = docString.split()
+        amount = re.sub('[^\d.]', '', splitted[-11])
         data[5] = amount
     # Return list
     print(data)
