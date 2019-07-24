@@ -4,7 +4,7 @@ from PIL import Image
 from pdf2image import convert_from_path
 
 
-folder_path = 'C:/Users/Richard/Projects/OCR Invoice Processor/temp'
+folder_path = 'C:/Users/Richard/Projects/OCR Invoice Processor/Convert'
 count = 1
 
 for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
