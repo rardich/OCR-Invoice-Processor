@@ -1,3 +1,5 @@
+# Converts PDF to image to find location data
+
 import os, glob
 from PIL import Image
 
