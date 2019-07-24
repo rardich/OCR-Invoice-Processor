@@ -1,13 +1,13 @@
 import pyautogui, csv
 
-# Failsafe by moving mouse to upper left hand corner of display
+# System failsafe by moving mouse to upper left hand corner of display
 pyautogui.FAILSAFE = True
 pyautogui.PAUSE = 0.1
 
 width, height = pyautogui.size()
 
+# Programmed failsafe
 print('Press Ctrl + C to quit program')
-
 
 # Need to implement on actual computer that will be used to interface with Epicor
 try:
