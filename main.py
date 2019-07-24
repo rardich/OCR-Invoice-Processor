@@ -21,8 +21,8 @@ for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
     # Converting into image
     pages = convert_from_path(filename, single_file = True)
     for page in pages:
-        page.save('temp.png', 'PNG')
-    image = Image.open('temp.png')
+        page.save('temp/temp.png', 'PNG')
+    image = Image.open('temp/temp.png')
     # Extracting the text to check for vendor and if invoice
     # Try and except used because of exception: ValueError: 
     # invalid literal for int() with base 10: 'obj' not allowing 
@@ -32,17 +32,17 @@ for filename in glob.glob(os.path.join(folder_path, '*.pdf')):
         page = pdf.getPage(0)
         docString = page.extractText()
     except:
-        image = Image.open('temp.png')
+        image = Image.open('temp/temp.png')
         width, height = image.size
-        crop(image, (0, 0, width, height / 2), 'cropped.png')
+        crop(image, (0, 0, width, height / 2), 'temp/cropped.png')
         # Read top half
-        docString = pytesseract.image_to_string(Image.open('cropped.png'))
+        docString = pytesseract.image_to_string(Image.open('temp/cropped.png'))
     if docString == '' or docString.isspace():
-        image = Image.open('temp.png')
+        image = Image.open('temp/temp.png')
         width, height = image.size
-        crop(image, (0, 0, width, height / 2), 'cropped.png')
+        crop(image, (0, 0, width, height / 2), 'temp/cropped.png')
         # Read top half
-        docString = pytesseract.image_to_string(Image.open('cropped.png'))
+        docString = pytesseract.image_to_string(Image.open('temp/cropped.png'))
     # Check if invoice
     if 'Invoice' in docString or 'INVOICE' in docString or 'invoice' in docString or ('!' in docString and '@' in docString and '&' in docString):
         data = process(docString, image, allPositions, filename)

@@ -16,8 +16,8 @@ def processLast(docString, image, allPositions, filename, vendor):
     # Get relevant position data from allPositions dictionary
     positions = allPositions[vendor]
     # PO
-    crop(image, (positions[0][0], positions[0][1], positions[0][2], positions[0][3]), 'PO.png')
-    PO = re.sub('[^\d]', '', pytesseract.image_to_string(Image.open('PO.png'), config='--psm 7'))
+    crop(image, (positions[0][0], positions[0][1], positions[0][2], positions[0][3]), 'temp/PO.png')
+    PO = re.sub('[^\d]', '', pytesseract.image_to_string(Image.open('temp/PO.png'), config='--psm 7'))
     if len(PO) == 5 and PO.isdigit():
         data.insert(0, PO)
     else:
@@ -26,31 +26,31 @@ def processLast(docString, image, allPositions, filename, vendor):
     # Supplier
     data.insert(1, vendor)
     # Date
-    crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
-    date = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
+    crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'temp/date.png')
+    date = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7'))
     data.insert(2, date)
     # Description
-    crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'desc.png')
-    description = pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7')
+    crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'temp/desc.png')
+    description = pytesseract.image_to_string(Image.open('temp/desc.png'), config='--psm 7')
     if PO == '':
         data.insert(3, description)
     else:
         data.insert(3, '')
     # Invoice #
-    crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'inv.png')
-    invoice = pytesseract.image_to_string(Image.open('inv.png'), config='--psm 7')
+    crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'temp/inv.png')
+    invoice = pytesseract.image_to_string(Image.open('temp/inv.png'), config='--psm 7')
     if vendor != 'XPX001' or vendor != 'XPE01130':
         invoice = invoice.lstrip('0').strip('.')
     data.insert(4, invoice)
     # Make new image for last page with amount on it
     pages = convert_from_path(filename)
     for page in pages:
-        page.save('temp.png', 'PNG')
-    image = Image.open('temp.png')
+        page.save('temp/temp.png', 'PNG')
+    image = Image.open('temp/temp.png')
 
     # Amount
-    crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
-    amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
+    crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'temp/amount.png')
+    amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('temp/amount.png'), config='--psm 7'))
     data.insert(5, amount)
 
     # Amount Exceptions
@@ -71,6 +71,11 @@ def processLast(docString, image, allPositions, filename, vendor):
         docString = pytesseract.image_to_string(image)
         splitted = docString.split()
         amount = re.sub('[^\d.]', '', splitted[splitted.index('Grand') + 2])
+        data[5] = amount
+    elif vendor == 'SHI001':
+        docString = pytesseract.image_to_string(image)
+        splitted = docString.split()
+        amount = re.sub('[^\d.]', '', splitted[-7])
         data[5] = amount
 
     # Return list
@@ -101,15 +106,15 @@ def process(docString, image, allPositions, filename):
             if word[0] == '2' and len(word) == 5:
                 PO = word
                 break
-        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
-        date = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
+        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'temp/date.png')
+        date = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7'))
         description = ''
-        crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'inv.png')
-        invoice = pytesseract.image_to_string(Image.open('inv.png'), config='--psm 7')
+        crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'temp/inv.png')
+        invoice = pytesseract.image_to_string(Image.open('temp/inv.png'), config='--psm 7')
         amount = re.sub('[^\d.]', '', splitted[splitted.index('Due') + 1])
         if amount == '':
-            crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
-            amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
+            crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'temp/amount.png')
+            amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('temp/amount.png'), config='--psm 7'))
         data.insert(0, PO)
         data.insert(1, vendor)
         data.insert(2, date)
@@ -137,8 +142,8 @@ def process(docString, image, allPositions, filename):
         amount = re.sub('[^\d.]', '', splitted[splitted.index('Due:') + 1])
         positions = allPositions[vendor]
         if amount == '':
-            crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
-            amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
+            crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'temp/amount.png')
+            amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('temp/amount.png'), config='--psm 7'))
         data.insert(0, PO)
         data.insert(1, vendor)
         data.insert(2, date)
@@ -375,8 +380,8 @@ def process(docString, image, allPositions, filename):
     # Get relevant position data from allPositions dictionary
     positions = allPositions[vendor]
     # PO
-    crop(image, (positions[0][0], positions[0][1], positions[0][2], positions[0][3]), 'PO.png')
-    PO = re.sub('[^\d]', '', pytesseract.image_to_string(Image.open('PO.png'), config='--psm 7'))
+    crop(image, (positions[0][0], positions[0][1], positions[0][2], positions[0][3]), 'temp/PO.png')
+    PO = re.sub('[^\d]', '', pytesseract.image_to_string(Image.open('temp/PO.png'), config='--psm 7'))
     if len(PO) == 5 and PO[0] == '2':
         data.insert(0, PO)
     else:
@@ -385,53 +390,53 @@ def process(docString, image, allPositions, filename):
     # Supplier
     data.insert(1, vendor)
     # Date
-    crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
-    date = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
+    crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'temp/date.png')
+    date = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7'))
     if vendor == 'LII001':
         tempDate = date[3:6] + date[0:3] + date[6:]
         date = tempDate
     data.insert(2, date)
     # Description
-    crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'desc.png')
-    description = pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7')
+    crop(image, (positions[2][0], positions[2][1], positions[2][2], positions[2][3]), 'temp/desc.png')
+    description = pytesseract.image_to_string(Image.open('temp/desc.png'), config='--psm 7')
     if PO == '':
         data.insert(3, description)
     else:
         data.insert(3, '')
     # Invoice #
-    crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'inv.png')
-    invoice = pytesseract.image_to_string(Image.open('inv.png'), config='--psm 7')
+    crop(image, (positions[3][0], positions[3][1], positions[3][2], positions[3][3]), 'temp/inv.png')
+    invoice = pytesseract.image_to_string(Image.open('temp/inv.png'), config='--psm 7')
     if vendor != 'XPX001' or vendor != 'XPE01130':
         invoice = invoice.lstrip('0').strip('.')
     data.insert(4, invoice)
     # Amount
-    crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'amount.png')
-    amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('amount.png'), config='--psm 7'))
+    crop(image, (positions[4][0], positions[4][1], positions[4][2], positions[4][3]), 'temp/amount.png')
+    amount = re.sub('[^\d.]', '', pytesseract.image_to_string(Image.open('temp/amount.png'), config='--psm 7'))
     data.insert(5, amount)
     
     # Date Exceptions
     if vendor == 'PRL001':
-        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
-        date = pytesseract.image_to_string(Image.open('date.png'), config='--psm 7')
+        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'temp/date.png')
+        date = pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7')
         date = re.sub('[^\d/]','', str(months[date[0:3]]) + '/' + str(date[-4]) + '/' + str(date[-8:-6]))
         data[2] = date
     elif vendor == 'GRI01130':
-        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
-        date = pytesseract.image_to_string(Image.open('date.png'), config='--psm 7')
+        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'temp/date.png')
+        date = pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7')
         date = re.sub('[^\d/]','', str(months[date[3:6]]) + '/' + str(date[0:2]) + '/' + str(date[-4:]))
         data[2] = date
     elif vendor == 'ASG001' or vendor == 'AME01130':
-        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'date.png')
-        date = pytesseract.image_to_string(Image.open('date.png'), config='--psm 7')
+        crop(image, (positions[1][0], positions[1][1], positions[1][2], positions[1][3]), 'temp/date.png')
+        date = pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7')
         date = re.sub('[^\d/]','', str(months[date[0:-9]]) + '/' + str(date[-9:-6]) + '/' + str(date[-4:]))
         data[2] = date
     elif vendor == 'MAC01130':
-        crop(image, (1391,287,1442,347), 'date.png')
-        tempMonth = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
-        crop(image, (1448,286,1500,347), 'date.png')
-        tempDay = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
-        crop(image, (1505,287,1558,347), 'date.png')
-        tempYear = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('date.png'), config='--psm 7'))
+        crop(image, (1391,287,1442,347), 'temp/date.png')
+        tempMonth = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7'))
+        crop(image, (1448,286,1500,347), 'temp/date.png')
+        tempDay = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7'))
+        crop(image, (1505,287,1558,347), 'temp/date.png')
+        tempYear = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('temp/date.png'), config='--psm 7'))
         date = tempMonth + '/' + tempDay + '/' + tempYear
         data[2] = date
     elif vendor == 'CRY001':
@@ -454,15 +459,15 @@ def process(docString, image, allPositions, filename):
             description = tempSplitted[0] + ' ' + tempSplitted[1] + ' ' + tempSplitted[-2] + ' ' + tempSplitted[-1]
         data[3] = description
     elif vendor == 'MTL01130':
-        crop(image, (940,903,1067,938), 'desc.png')
-        tempDescStart = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7'))
-        crop(image, (940,939,1067,974), 'desc.png')
-        tempDescEnd = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7'))
+        crop(image, (940,903,1067,938), 'temp/desc.png')
+        tempDescStart = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('temp/desc.png'), config='--psm 7'))
+        crop(image, (940,939,1067,974), 'temp/desc.png')
+        tempDescEnd = re.sub('[^\d/]', '', pytesseract.image_to_string(Image.open('temp/desc.png'), config='--psm 7'))
         description = description + ' ' + tempDescStart + '-' + tempDescEnd
         data[3] = description
     elif vendor == 'FUJ001':
-        crop(image, (267,851,1462,910), 'desc.png')
-        tempDesc = pytesseract.image_to_string(Image.open('desc.png'), config='--psm 7')
+        crop(image, (267,851,1462,910), 'temp/desc.png')
+        tempDesc = pytesseract.image_to_string(Image.open('temp/desc.png'), config='--psm 7')
         tempDesc = tempDesc[18:-26].strip() + ' ' + description[4:].strip()
         data[3] = tempDesc
     # Invoice # Exceptions
