@@ -1,7 +1,9 @@
-import pyautogui
+import pyautogui, csv
 
+# Failsafe by moving mouse to upper left hand corner of display
 pyautogui.FAILSAFE = True
-pyautogui.PAUSE = 0.25
+pyautogui.PAUSE = 0.1
+
 width, height = pyautogui.size()
 
 print('Press Ctrl + C to quit program')
@@ -14,6 +16,5 @@ try:
         pyautogui.moveTo(100, 200, duration = 0.25)
         pyautogui.moveTo(200, 200, duration = 0.25)
         pyautogui.moveTo(200, 100, duration = 0.25)
-
 except KeyboardInterrupt:
     print('Exited Sucessfully')
