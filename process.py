@@ -1,7 +1,7 @@
 from PIL import Image
 from pdf2image import convert_from_path
 from PyPDF2 import PdfFileReader
-from positions import allPositions, months
+from Positions import allPositions, months
 import pytesseract, re, os, glob, time, csv, re, itertools
 
 # Crops image based on coordinates and returns image
